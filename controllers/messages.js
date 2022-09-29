@@ -1,12 +1,25 @@
 const { response } = require("express")
 
 const rootMessage = (req = request, res = response) => {
-    res.status(404).json({msg: 'Mesajes'}) 
-
+    //http://localhost:4000/api/v1/messages?nombre=Gladys&apellido_paterno=Miguel
+    const {nombre, apellido_paterno = ""} = req.query
+    //console.log(nombre)
+    if (!nombre) {
+        res.status(400).json({msg: "Falta indicar el nombre"})
+    return
+    }
+    if (!apellido_paterno) {
+        res.status(400).json-({
+            msg: "Falta indicar el apellido paterno"
+        })
+        return
+ }
+ res.status(200).json({msg: ' Mi nombre es ' + nombre + ' ' + apellido_paterno}) 
 }
-
+//http://localhost:4000/api/v1/messages/hi/Gladys/20
 const hiMessage = (req = resquest, res= response)  => {
-    res.status(300).json({msg:'Hola Mundo'})
+    const {name, edad} = req.params
+    res.status(300).json({msg:' Hola ' + name + ' ' + edad})
 
 }
 

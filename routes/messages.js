@@ -12,7 +12,7 @@ const {
      = require('../controllers/messages')
      //router.get("", () => {})
     router.get('/', rootMessage)//End Point
-    router.get('/hi', hiMessage)//End Point
+    router.get('/hi/:name/:edad', hiMessage)//End Point
     router.get('/bye', byeMessage)//End Point
 
     router.post('/', postMessage)//End Point
