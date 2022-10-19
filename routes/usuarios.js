@@ -1,9 +1,10 @@
-const { Router } = require("express")
-const { getUsers } = require("../controllers/usuarios")
+const {Router} = require("express")
+const {getUsers, getUserByID} = require("../controllers/usuarios")
 const router = Router()
 
-//http://localhost:400/api/v1/users/
+//http://localhost:4000/api/v1/users
+//http://localhost:4000/api/v1/usuarios/id/2
 
 router.get("/", getUsers)
-
+router.get("/id/:id", getUserByID)
 module.exports = router
