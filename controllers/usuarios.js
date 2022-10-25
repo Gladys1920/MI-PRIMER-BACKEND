@@ -107,14 +107,14 @@ const getUserByID = async (req = request, res = response) => {
         }
         let conn;
 
-        //Validar que no exite el usuario
+        //Validar que no existe el usuario
 
         try{
             conn = await pool.getConnection() //Realizamos la conexion
             
-            const [userExist]= await conn.query(`SELECT Usuario FROM Usuarios WHERE Usuario = '${Usuario}'`)
+           const [userExist]= await conn.query(`SELECT Usuario FROM Usuarios WHERE Usuario = '${Usuario}'`)
 
-            if (userExist){
+            if (!userExist){
                 res.status(400).json({msg: `El usuario ${Usuario} ya se encuentra registrado.`})
                 return 
             }
@@ -124,7 +124,7 @@ const getUserByID = async (req = request, res = response) => {
                 Nombre, 
                 Apellidos,
                 Edad,
-                Genero,
+                Genero = 'M'
                 Usuario,
                 Contrasena,
                 Fecha_Nacimiento,
@@ -155,4 +155,65 @@ const getUserByID = async (req = request, res = response) => {
             if(conn) conn.end() //Termina la conexion
         }
         }
-module.exports = {getUsers, getUserByID, adduser, deletUsersByID}
+
+        const updateUserByUsuario = async (req =request, res = response) =>{
+            const {
+                Nombre,
+                Apellidos, 
+                Edad, 
+                Genero, 
+                Usuario, 
+                Contrasena, 
+                Fecha_Nacimiento = '1900-01-01',
+            } = req.body //URI Params
+
+            if (
+                !Nombre||
+                !Apellidos||
+                !Edad||
+                !Usuario
+            ) {
+              
+                res.status(400).json({msg: "Faltan datos"})
+                return
+            }
+      
+
+
+            let conn;
+
+         //Validar que no existe el usuario
+
+         try{
+            conn = await pool.getConnection() //Realizamos la conexion
+            
+            //Generamos la consulta
+            const result = await conn.query(`UPDATE Usuarios SET
+                Nombre ='${Nombre}',
+                Apellidos ='${Apellidos}',
+                Edad =${Edad},
+                ${Genero ? `Genero = '${Genero}',`:''}
+                Fecha_Nacimiento ='${Fecha_Nacimiento}'
+            WHERE
+                Usuario = '${Usuario}'
+                `,(error)=> { if (error) throw error})
+            
+            
+
+        if (result.affectedRows ===0){ //En caso de no haber registro lo informamos
+            res.status(400).json({msg: `No se pudo actualizar el usuario`})
+            return 
+        }
+        res.json({msg: `Se actualizo satisfactoriamente el usuario`}) //Se manda la lista de usuarios
+        }
+        catch(error){
+            console.log(error)
+            res.status(500).json({msg:error}) //Informamos el error 
+        }
+        finally{
+            if(conn) conn.end() //Termina la conexion
+        }
+        
+    }
+
+module.exports = {getUsers, getUserByID, adduser, deletUsersByID, updateUserByUsuario}
