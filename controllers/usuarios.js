@@ -1,4 +1,5 @@
-const { request, reponse } = require("express")
+const { request, response } = require("express")
+const bcryptjs = require ("bcryptjs")
 const pool = require("../db/connection");
 //http://localhost:4000/api/v1/usuarios
 const getUsers = async (req = request, res = response) => {
@@ -69,10 +70,11 @@ const getUserByID = async (req = request, res = response) => {
             const result = await conn.query(`UPDATE Usuarios SET Activo = 'N' WHERE ID = ${id} ` ,(error) =>  { if (error) throw error})
     
            
-        if (result.affectedRows ===0){ //En caso de no haber registrado lo informamos
+            if (result.affectedRows ===0){ //En caso de no haber registrado lo informamos
             res.status(404).json({msg:`No existe Usuarios registrados con el ID ${id}`})
             return
         }
+
         res.json({msg: `Se elimino satisfactoriamente el usuario`}) //Se manda la lista de usuarios
     }
     
@@ -88,10 +90,10 @@ const getUserByID = async (req = request, res = response) => {
             const {Nombre,
                    Apellidos,
                    Edad,
-                   Genero,
+                   Genero = '',
                    Usuario,
                    Contrasena,
-                   Fecha_Nacimiento,
+                   Fecha_Nacimiento = "2000-11-12",
                    Activo} = req.body
 
             if(!Nombre||
@@ -105,26 +107,27 @@ const getUserByID = async (req = request, res = response) => {
             res.status(400).json({msg:"Faltan Datos"})
             return
         }
-        let conn;
 
-        //Validar que no existe el usuario
+        const salt = bcryptjs.genSaltSync()
+        const ContrasenaCifrada = bcryptjs.hashSync(Contrasena, salt)
+
+        let conn;
 
         try{
             conn = await pool.getConnection() //Realizamos la conexion
             
            const [userExist]= await conn.query(`SELECT Usuario FROM Usuarios WHERE Usuario = '${Usuario}'`)
 
-            if (!userExist){
+            if (userExist){
                 res.status(400).json({msg: `El usuario ${Usuario} ya se encuentra registrado.`})
                 return 
             }
             //Generamos la consulta
-            const result = await conn.query(`
-            INSERT INTO Usuarios(
+            const result = await conn.query(`INSERT INTO Usuarios(
                 Nombre, 
                 Apellidos,
                 Edad,
-                Genero = 'M'
+                Genero,
                 Usuario,
                 Contrasena,
                 Fecha_Nacimiento,
@@ -132,10 +135,10 @@ const getUserByID = async (req = request, res = response) => {
             VALUES(
                 '${Nombre}',
                 '${Apellidos}',
-                '${Edad}',
+                ${Edad},
                 '${Genero}',
                 '${Usuario}',
-                '${Contrasena}',
+                '${ContrasenaCifrada}',
                 '${Fecha_Nacimiento}',
                 '${Activo}'
             )
@@ -216,4 +219,48 @@ const getUserByID = async (req = request, res = response) => {
         
     }
 
-module.exports = {getUsers, getUserByID, adduser, deletUsersByID, updateUserByUsuario}
+    const signIn = async (req = request, res = response) => {
+        const {Usuario, Contrasena} = req.body //URI Params
+
+        if (!Usuario || !Contrasena){
+            res.status(400).json({msg: "Faltan datos"})
+            return 
+        }
+        
+        let conn;
+    
+        try {
+            conn = await pool.getConnection() // Realizamos la conexion
+    
+            // Generamos las consultas
+    
+            const [user] = await conn.query(`SELECT Contrasena, 
+                                             Activo FROM  Usuarios 
+                                             WHERE Usuario = '${Usuario}' 
+                                             ` ,(error) =>  { if (error) throw error})
+    
+        if (!user || user.Activo === 'N'){
+            res.status(403).json({msg: "El usuario o contrasena que se ingreso no son validos"})
+            return
+        }
+        
+        const contrasenaValida = bcryptjs.compareSync(Contrasena, user.Contrasena)
+
+        if (!contrasenaValida){
+        res.status(403).json({msg:"El usuario o contrasena que se ingreso no son validos"}) 
+        return 
+    }
+
+    res.json({msg: `El usuario se ha autenticado corectamente`})//Se manda la lista de usuarios
+}
+        catch (error) {
+          console.log(error)
+          res.status(500).json({msg: error}) //Informamos el error
+        } 
+        finally {
+          if (conn) conn.end() // Termina la conexion
+        }
+    }
+
+
+module.exports = {getUsers, getUserByID, adduser, deletUsersByID, updateUserByUsuario, signIn}
