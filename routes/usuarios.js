@@ -17,7 +17,7 @@ router.post("/singing", signIn)
 ///PUT//
 router.put("/", updateUserByUsuario)
 
-
+|
 ///DELETE///
 router.delete("/id/:id", deletUsersByID)
 module.exports = router
